@@ -3,23 +3,18 @@
     <div class="header">
         <div class="nav">
           <div class="nav_header">
-            <el-select v-model="value" @change="changeWeather">
-              
-    <el-option-group
-      v-for="group in options"
-      :key="group.label"
-      :label="group.label">
-      <el-option
-        v-for="item in group.options"
-        :key="item.value"
-        :label="item.label"
-        :value="item.value">
-      </el-option>
-      
-    </el-option-group>
-  </el-select>
+            <div id="app">
+              <div id="app">
+    <el-cascader
+      size="large"
+      :options="options"
+      v-model="selectedOptions"
+      placeholder="南昌"
+      @change="addressChange">
+    </el-cascader>
+  </div>
+  </div>
           </div>
-
   <div class="info">
     <p class="wind">
         {{temperature}}
@@ -30,7 +25,7 @@
       <p class="quality">
         <span>{{air}}</span>
       <span>{{air_level}}</span>
-      <span>></span>
+      <span><img src="../assets/向右箭头.svg" alt=""></span>
       </p>
       <div class="detail">
           今天:{{wea}}&nbsp;{{tem1}}至{{tem2}}&nbsp;{{win}}{{win_speed}}
@@ -69,6 +64,7 @@
 <script>
 var myChart;
 var option;
+import { provinceAndCityData ,CodeToText } from 'element-china-area-data'
 export default {
   name: 'HelloWorld',
   data() {
@@ -112,7 +108,9 @@ export default {
         tem2:'',
         data1:[],
         data2:[],
-        list:[]
+        list:[],
+        options: provinceAndCityData ,
+        selectedOptions: []
     };
   },
   created () {
@@ -123,6 +121,20 @@ export default {
     this.diagram()
   },
   methods: {
+    addressChange(arr) {
+          console.log(arr);
+          console.log(CodeToText[arr[1]]=="市辖区");
+          if (CodeToText[arr[1]]=="市辖区") {          
+            console.log(arr);
+            this.value = CodeToText[arr[0]]
+            this.chengshiInfo()
+          }else{
+            this.value = CodeToText[arr[arr.length-1]]
+            this.chengshiInfo()
+          }
+         
+          this.chengshiInfo()
+      },
     chengshiInfo(){
       this.Axios({
         method:'get',
@@ -138,7 +150,7 @@ export default {
     weatherInfo(){
         this.Axios({
           method:'get',
-          url:`https://www.tianqiapi.com/api?version=v1&appid=12944217&appsecret=qS3aHmNC&city=${this.value}`,
+          url:`https://www.tianqiapi.com/api?version=v1&appid=12944217&appsecret=qS3aHmNC&cityid=${this.chengshiId}`,
         }).then(res=>{
           this.temperature = res.data.data[this.index].tem
           this.wea_day = res.data.data[this.index].wea_day
@@ -209,7 +221,7 @@ export default {
     background-color: transparent;
 }
     .el-input{
-      width:35%;
+      width:75%;
     }
     
     .el-input__inner{
@@ -231,7 +243,7 @@ export default {
       font-size: 18px;
     }
     .quality{
-      width: 150px;
+      width: 80px;
       height: 30px;
       background-color: #5FB06A;
       border-radius: 15px;
@@ -240,6 +252,13 @@ export default {
       font-size: 16px;
       align-items: center;
       color: #FFFFFF;
+      span{
+        font-size: .5rem;
+        img{
+          width: .8rem;
+          height: .8rem;
+        }
+      }
     }
     .detail{
       font-size: 12px;
@@ -292,7 +311,8 @@ export default {
       justify-content: space-around;
       li{
       display: flex;
-      flex-direction: column;     
+      flex-direction: column;   
+      align-items: center;
       img{
         width: 30px;
         height: 30px;
