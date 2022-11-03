@@ -4,33 +4,46 @@
       <div class="nav">
         <div class="nav_header">
           <div id="app">
-            <div id="app">
-              <el-cascader
-                size="large"
-                :options="options"
-                v-model="selectedOptions"
-                placeholder="南昌"
-                @change="addressChange"
-              >
-              </el-cascader>
+            <!-- 城市选择模块 -->
+            <el-cascader
+              size="large"
+              :options="optionss"
+              v-model="selectedOptions"
+              :placeholder="placeholder"
+              class="input"
+              @change="addressChange"
+            >
+            </el-cascader>
+            <div>
+              <!-- 城市搜索模块 -->
+              <van-search
+                v-model="searchInfo"
+                placeholder="输入城市"
+                @keydown.enter="search"
+              />
             </div>
           </div>
         </div>
         <div class="info">
           <p class="wind">
+            <!-- 一天平均温度 -->
             {{ temperature }}
           </p>
           <p class="wea_day">
+            <!-- 当天的天气状态以及风向和风向等级 -->
             {{ wea_day }}&nbsp;&nbsp;|&nbsp;&nbsp;{{ win }}{{ win_speed }}
           </p>
           <p class="quality">
+            <!-- 空气质量 -->
             <span>{{ air }}</span>
             <span>{{ air_level }}</span>
             <span><img src="../assets/向右箭头.svg" alt="" /></span>
           </p>
           <div class="detail">
-            今天:{{ wea }}&nbsp;{{ tem1 }}至{{ tem2 }}&nbsp;{{ win
-            }}{{ win_speed }}
+            <!-- 最高温度和最低温度风向的变化 -->
+            {{ date.substring(5) }}:{{ wea }}&nbsp;{{ tem1 }}至{{
+              tem2
+            }}&nbsp;{{ win }}{{ win_speed }}
             <div class="hous">
               24小时预报
               <div></div>
@@ -38,22 +51,25 @@
           </div>
           <div class="icon">
             <span v-for="(obj, index) in data2" :key="index">
-              <img src="../../Icons/icons/100.svg" alt="" />
+              <!-- 每个小时的温度情况 -->
+              <img :src="url[index]" alt="" />
               {{ obj }}℃
             </span>
           </div>
         </div>
+        <!-- 把小时温度数据用echrats可视化 -->
         <div class="diagram"></div>
       </div>
     </div>
     <div class="main">
       <ul>
+        <!-- 未来5天内的天气预报 -->
         <li v-for="(obj, index) in list" :key="index" @click="qiehuan(index)">
           <span v-if="index == 0">今天</span>
           <span v-else-if="index == 1">明天</span>
           <span v-else>{{ obj.week }}</span>
           <span>{{ obj.date.substring(5) }}</span>
-          <img src="../../Icons/icons/100.svg" alt="" />
+          <img :src="img[index]" alt="" />
         </li>
       </ul>
     </div>
@@ -118,22 +134,49 @@ export default {
       data1: [],
       data2: [],
       list: [],
-      options: provinceAndCityData,
+      date: "",
+      // eslint-disable-next-line no-dupe-keys
+      optionss: provinceAndCityData,
       selectedOptions: [],
+      searchInfo: "",
+      placeholder: "南昌",
+      img: [
+        require("../assets/taiyang.svg"),
+        require("../assets/taiyangyu-baitian.svg"),
+        require("../assets/xiayu.svg"),
+        require("../assets/yintian.svg"),
+        require("../assets/yinzhuanqing.svg"),
+      ],
+      url: [
+        require("../assets/tianqi-daxue.svg"),
+        require("../assets/tianqi-dayu.svg"),
+        require("../assets/tianqi-leidiantianqi.svg"),
+        require("../assets/tianqi-qing.svg"),
+        require("../assets/tianqi-yintian.svg"),
+      ],
     };
   },
   created() {
+    // 发起城市选择请求
     this.chengshiInfo();
   },
   mounted() {
+    // echarts
     this.diagram();
   },
   methods: {
+    // 搜索城市
+    search() {
+      if ((this.searchInfo != null) & (this.searchInfo.length != 0)) {
+        this.value = this.searchInfo;
+        this.placeholder = this.value;
+        this.searchInfo = "";
+        this.chengshiInfo();
+      }
+    },
     addressChange(arr) {
-      console.log(arr);
-      console.log(CodeToText[arr[1]] == "市辖区");
+      // 选择城市模块
       if (CodeToText[arr[1]] == "市辖区") {
-        console.log(arr);
         this.value = CodeToText[arr[0]];
         this.chengshiInfo();
       } else {
@@ -144,6 +187,7 @@ export default {
       this.chengshiInfo();
     },
     chengshiInfo() {
+      // 获取城市的cityId
       this.Axios({
         method: "get",
         url: `https://geoapi.qweather.com/v2/city/lookup?location=${this.value}&key=48092b91a3ac4e89959e7db70ebb66ba`,
@@ -153,12 +197,14 @@ export default {
       });
     },
     changeWeather() {
+      // 当城市选择事件触发就重新发起请求
       this.chengshiInfo();
     },
     weatherInfo() {
+      // 通过城市id来获取对应的天气
       this.Axios({
         method: "get",
-        url: `https://www.tianqiapi.com/api?version=v1&appid=12944217&appsecret=qS3aHmNC&cityid=${this.chengshiId}`,
+        url: `https://www.tianqiapi.com/api?version=v1&appid=42241877&appsecret=bVc7Qhxv&cityid=${this.chengshiId}`,
       }).then((res) => {
         this.temperature = res.data.data[this.index].tem;
         this.wea_day = res.data.data[this.index].wea_day;
@@ -172,15 +218,18 @@ export default {
         this.data1 = [];
         this.data2 = [];
         this.list = [];
+        this.date = res.data.data[this.index].date;
         for (let i = 0; i < 5; i++) {
           this.data1.push(res.data.data[this.index].hours[i].hours);
           this.data2.push(res.data.data[this.index].hours[i].tem);
           this.list.push(res.data.data[i]);
         }
         this.diagram();
+        this.index = 0;
       });
     },
     diagram() {
+      // echarts
       if (myChart != null) {
         myChart.dispose();
       }
@@ -189,15 +238,28 @@ export default {
         xAxis: {
           type: "category",
           data: this.data1,
+          display: false,
+        },
+        tooltip: {
+          trigger: "axis", //坐标轴触发，主要在柱状图，折线图等会使用类目轴的图表中使用
+          axisPointer: {
+            // 坐标轴指示器，坐标轴触发有效
+            type: "line", // 默认为直线，可选为：'line' | 'shadow'
+          },
         },
         yAxis: {
           type: "value",
+          splitLine: { show: false },
+          axisLine: {
+            show: false,
+          },
         },
         series: [
           {
             data: this.data2,
             type: "line",
             smooth: true,
+            display: false,
           },
         ],
       };
@@ -210,13 +272,20 @@ export default {
   },
 };
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="less" scoped>
 .bigdiv {
   width: 100%;
+  max-width: 480px;
+  min-width: 375px;
+  margin: 0 auto;
 }
 /deep/ .header {
+  .el-cascader {
+    position: relative;
+    font-size: 14px;
+    line-height: 40px;
+    width: 140px;
+  }
   width: 100%;
   height: 640px;
   background-image: linear-gradient(#545f6c, #7a8998, #a5b7c8);
@@ -252,6 +321,10 @@ export default {
     width: 80px;
     height: 30px;
     background-color: #5fb06a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-wrap: normal;
     border-radius: 15px;
     display: flex;
     justify-content: space-evenly;
@@ -329,6 +402,35 @@ export default {
       padding-right: 15px;
       color: #1e1f24;
     }
+  }
+}
+#app {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-right: 15px;
+  .van-search__content {
+    display: flex;
+    flex: 1;
+    padding-left: 0px;
+    border-radius: 2px;
+    background-color: transparent;
+  }
+  .van-search {
+    height: 20px;
+    background-color: #616d7b;
+    border-radius: 10px;
+    border: 1px solid white;
+    outline: none;
+    width: 130px;
+  }
+  button {
+    font-size: 15px;
+    border-radius: 4px;
+    padding: 5px;
+    letter-spacing: 2px;
+    background-color: #ffffff;
+    border: none;
   }
 }
 </style>
